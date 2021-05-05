@@ -17,6 +17,7 @@ stages:
   - test
   - deploy
 
+# update Databricks cert repo - point to refreshed default branch
 deploy_cert:
     image: registry.gitlab.com/heb-engineering/teams/information-security/security-engineering-team/ci-images/vault:latest
     variables:
@@ -36,6 +37,26 @@ deploy_cert:
       - export VAULT_TOKEN=$(curl -sS $VAULT_ADDR/v1/auth/jwt/login -H "x-vault-namespace:$VAULT_NAMESPACE" --data "{\"jwt\":\"$CI_JOB_JWT\", \"role\":\"gitlab\"}" | jq -r .auth.client_token)
       - export DB_API=$(curl -sS $VAULT_ADDR/v1/kv_nonprod/data/$CI_PROJECT_ID/$SECRETS_PATH -H "x-vault-namespace:$VAULT_NAMESPACE" -H "x-vault-token:$VAULT_TOKEN" | jq -r .data.data.DB_API)
       - bash ./scripts/deploy_to_databricks.sh $DATABRICKS_URL $DB_REPO_ID_CERT $DB_API $CI_COMMIT_BRANCH
+      
+# update Databricks dev repo - point to refreshed default branch
+deploy_dev:
+    image: registry.gitlab.com/heb-engineering/teams/information-security/security-engineering-team/ci-images/vault:latest
+    variables:
+      VAULT_ADDR: "https://vault-w2.heb.com"
+      VAULT_NAMESPACE: "managed/mgd_svcs/gitlab"
+      SECRETS_PATH: "Databricks"
+      DATABRICKS_URL: "https://southcentralus.azuredatabricks.net"
+    stage: deploy
+    tags:
+      - common_runner
+      - docker_ondemand_runner
+      - group_runners
+    rules:
+      - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+    script:
+      - echo "Calling Repos Update API to update branch."
+      - export VAULT_TOKEN=$(curl -sS $VAULT_ADDR/v1/auth/jwt/login -H "x-vault-namespace:$VAULT_NAMESPACE" --data "{\"jwt\":\"$CI_JOB_JWT\", \"role\":\"gitlab\"}" | jq -r .auth.client_token)
+      - export DB_API=$(curl -sS $VAULT_ADDR/v1/kv_nonprod/data/$CI_PROJECT_ID/$SECRETS_PATH -H "x-vault-namespace:$VAULT_NAMESPACE" -H "x-vault-token:$VAULT_TOKEN" | jq -r .data.data.DB_API)
       - bash ./scripts/deploy_to_databricks.sh $DATABRICKS_URL $DB_REPO_ID_DEV $DB_API $CI_COMMIT_BRANCH
 
 deploy_prod:
