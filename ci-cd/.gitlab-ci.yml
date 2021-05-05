@@ -5,7 +5,7 @@
 include:
   - project: 'projects/templates'
     ref: master
-    file: '/common_yamls/gitlab-ci.yml'
+    file: '/common_yamls/common.gitlab-ci.yml'
 
 default:
     # use tags to select a specific runner from the list of all runners that are available for the project.
